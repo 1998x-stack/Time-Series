@@ -6,138 +6,143 @@ Content: 04_3.5 混合自回归移动平均过程
 """
 
 import numpy as np
-from typing import List
-import matplotlib.pyplot as plt
+from typing import List, Tuple
 
 class ARMAProcess:
     """
-    混合自回归移动平均过程（ARMA）类，用于模拟和分析 ARMA(p, q) 模型。
+    混合自回归移动平均过程 (ARMA) 类，用于生成和分析 ARMA(p, q) 模型。
 
     Attributes:
-        ar_order (int): 自回归过程的阶数 p。
-        ma_order (int): 移动平均过程的阶数 q。
-        constant (float): 常数项 c。
-        ar_params (np.ndarray): 自回归参数 φ。
-        ma_params (np.ndarray): 移动平均参数 θ。
-        noise_variance (float): 白噪声的方差 σ^2。
+        ar_params (List[float]): AR 模型的参数列表
+        ma_params (List[float]): MA 模型的参数列表
     """
 
-    def __init__(self, ar_order: int, ma_order: int, constant: float, ar_params: List[float], ma_params: List[float], noise_variance: float):
+    def __init__(self, ar_params: List[float], ma_params: List[float]):
         """
-        初始化 ARMA 类的实例。
+        初始化 ARMA 过程。
 
         Args:
-            ar_order (int): 自回归过程的阶数 p。
-            ma_order (int): 移动平均过程的阶数 q。
-            constant (float): 常数项 c。
-            ar_params (List[float]): 自回归参数 φ。
-            ma_params (List[float]): 移动平均参数 θ。
-            noise_variance (float): 白噪声的方差 σ^2。
+            ar_params (List[float]): AR 模型的参数列表
+            ma_params (List[float]): MA 模型的参数列表
         """
-        self.ar_order = ar_order
-        self.ma_order = ma_order
-        self.constant = constant
         self.ar_params = np.array(ar_params)
         self.ma_params = np.array(ma_params)
-        self.noise_variance = noise_variance
-        self.noise_mean = 0  # 白噪声均值为0
-
-    def __repr__(self) -> str:
-        return (f"ARMAProcess(ar_order={self.ar_order}, ma_order={self.ma_order}, constant={self.constant}, "
-                f"ar_params={self.ar_params.tolist()}, ma_params={self.ma_params.tolist()}, noise_variance={self.noise_variance})")
-
-    def generate_series(self, n: int) -> np.ndarray:
+        self.p = len(ar_params)  # AR 模型的阶数
+        self.q = len(ma_params)  # MA 模型的阶数
+    
+    def generate_samples(self, n_samples: int, noise_variance: float = 1.0) -> np.ndarray:
         """
-        生成 ARMA(p, q) 过程的时间序列。
+        生成 ARMA 过程的样本序列。
 
         Args:
-            n (int): 生成的时间序列长度。
+            n_samples (int): 生成样本的数量
+            noise_variance (float): 噪声方差，默认值为 1.0
 
         Returns:
-            np.ndarray: 生成的时间序列。
+            np.ndarray: 生成的 ARMA 过程样本序列
         """
-        noise = np.random.normal(self.noise_mean, np.sqrt(self.noise_variance), n + max(self.ar_order, self.ma_order))
-        series = np.zeros(n + max(self.ar_order, self.ma_order))
+        # 初始化样本序列
+        samples = np.zeros(n_samples)
+        # 生成白噪声序列
+        white_noise = np.random.normal(scale=np.sqrt(noise_variance), size=n_samples)
         
-        for t in range(max(self.ar_order, self.ma_order), n + max(self.ar_order, self.ma_order)):
-            series[t] = self.constant + noise[t]
-            for j in range(1, self.ar_order + 1):
-                series[t] += self.ar_params[j-1] * series[t - j]
-            for k in range(1, self.ma_order + 1):
-                series[t] += self.ma_params[k-1] * noise[t - k]
+        # 生成 ARMA 过程样本
+        for t in range(max(self.p, self.q), n_samples):
+            ar_component = np.dot(self.ar_params, samples[t-self.p:t][::-1])
+            ma_component = np.dot(self.ma_params, white_noise[t-self.q:t][::-1])
+            samples[t] = ar_component + white_noise[t] + ma_component
         
-        return series[max(self.ar_order, self.ma_order):]
+        return samples
 
-    def calculate_expectation(self) -> float:
+    def estimate_parameters(self, samples: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
-        计算 ARMA(p, q) 过程的期望值。
-
-        Returns:
-            float: 期望值。
-        """
-        return self.constant / (1 - np.sum(self.ar_params))
-
-    def calculate_variance(self) -> float:
-        """
-        计算 ARMA(p, q) 过程的方差。
-
-        Returns:
-            float: 方差。
-        """
-        denominator = 1 - np.sum(self.ar_params ** 2)
-        if denominator <= 0:
-            raise ValueError("方差计算中出现非正值，请检查AR参数的平稳性。")
-        variance = self.noise_variance / denominator
-        return variance
-
-    def calculate_autocorrelation(self, lag: int) -> float:
-        """
-        计算 ARMA(p, q) 过程的自相关函数。
+        使用极大似然估计法估计 ARMA 模型参数。
 
         Args:
-            lag (int): 滞后阶数。
+            samples (np.ndarray): 样本序列
 
         Returns:
-            float: 滞后 lag 的自相关值。
+            Tuple[np.ndarray, np.ndarray]: 估计的 AR 模型参数和 MA 模型参数
         """
-        if lag == 0:
-            return 1.0
-        if lag > max(self.ar_order, self.ma_order):
-            return 0.0
+        from statsmodels.tsa.arima.model import ARIMA
         
-        autocorrelation = self.ar_params[lag-1] if lag <= len(self.ar_params) else 0.0
-        return autocorrelation
+        # 使用 statsmodels 库估计 ARMA 模型参数
+        model = ARIMA(samples, order=(self.p, 0, self.q))
+        model_fit = model.fit()
+        
+        ar_params_estimated = model_fit.arparams
+        ma_params_estimated = model_fit.maparams
+        
+        return ar_params_estimated, ma_params_estimated
 
-# 实例化ARMA(1, 1)模型
-arma11 = ARMAProcess(ar_order=1, ma_order=1, constant=0, ar_params=[0.5], ma_params=[0.5], noise_variance=1.0)
-print(arma11)
+    def predict_n(self, n: int, history: np.ndarray) -> np.ndarray:
+        """
+        预测未来 n 步的值，并在每一步后重新拟合模型并获取新参数。
 
-# 生成时间序列
-series = arma11.generate_series(100)
-print("Generated Series:", series[:10])  # 仅显示前10个数据点
+        Args:
+            n (int): 要预测的步数
+            history (np.ndarray): 历史数据
 
-# 计算期望值
-expectation = arma11.calculate_expectation()
-print("Expectation:", expectation)
+        Returns:
+            np.ndarray: 预测的未来 n 步的值
+        """
+        predictions = np.zeros(n)
+        extended_history = np.append(history, predictions)
+        
+        for t in range(n):
+            # 重新估计参数
+            current_history = extended_history[:len(history) + t]
+            self.ar_params, self.ma_params = self.estimate_parameters(current_history)
+            
+            if t < self.q:
+                ma_component = np.dot(self.ma_params[:t], extended_history[-t-1:-1][::-1])
+            else:
+                ma_component = np.dot(self.ma_params, extended_history[-self.q-1:-1][::-1])
+                
+            if t < self.p:
+                ar_component = np.dot(self.ar_params[:t], extended_history[-t-1:-1][::-1])
+            else:
+                ar_component = np.dot(self.ar_params, extended_history[-self.p-1:-1][::-1])
+                
+            predictions[t] = ar_component + ma_component
+            extended_history[len(history) + t] = predictions[t]
+        
+        return predictions
 
-# 计算方差
-variance = arma11.calculate_variance()
-print("Variance:", variance)
+def main():
+    """
+    主函数，演示混合自回归移动平均过程的使用。
+    """
+    # 定义 ARMA(2, 2) 模型的参数
+    ar_params = [0.75, -0.25]
+    ma_params = [0.65, 0.35]
+    arma_process = ARMAProcess(ar_params, ma_params)
+    
+    # 生成 ARMA 过程样本
+    n_samples = 100
+    noise_variance = 1.0
+    samples = arma_process.generate_samples(n_samples, noise_variance)
+    
+    # 打印生成的样本序列的前 10 个值
+    print("Generated ARMA process samples (first 10 samples):")
+    print(samples[:10])
+    
+    # 使用极大似然估计法估计 ARMA 模型参数
+    estimated_ar_params, estimated_ma_params = arma_process.estimate_parameters(samples)
+    
+    # 打印估计的参数
+    print("Estimated AR parameters:")
+    print(estimated_ar_params)
+    print("Estimated MA parameters:")
+    print(estimated_ma_params)
+    
+    # 预测未来 10 步的值
+    history = samples[-max(len(ar_params), len(ma_params)):]  # 取最后的历史数据
+    predictions = arma_process.predict_n(10, history)
+    
+    # 打印预测值
+    print("Predicted future values:")
+    print(predictions)
 
-# 计算自相关函数
-autocorrelation_0 = arma11.calculate_autocorrelation(0)
-autocorrelation_1 = arma11.calculate_autocorrelation(1)
-autocorrelation_2 = arma11.calculate_autocorrelation(2)
-print("Autocorrelation (lag 0):", autocorrelation_0)
-print("Autocorrelation (lag 1):", autocorrelation_1)
-print("Autocorrelation (lag 2):", autocorrelation_2)
-
-# 可视化时间序列
-plt.figure(figsize=(10, 6))
-plt.plot(series, label='ARMA(1,1) Series')
-plt.title('Generated ARMA(1,1) Time Series')
-plt.xlabel('Time')
-plt.ylabel('Value')
-plt.legend()
-plt.show()
-
+if __name__ == "__main__":
+    main()

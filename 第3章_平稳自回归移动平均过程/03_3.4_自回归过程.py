@@ -10,146 +10,93 @@ from typing import List
 
 class AutoregressiveProcess:
     """
-    自回归过程（AR）类，用于模拟和分析 AR(p) 模型。
+    自回归过程类，用于生成和分析AR(p)模型。
 
     Attributes:
-        order (int): 自回归过程的阶数 p。
-        constant (float): 常数项 c。
-        ar_params (np.ndarray): 自回归参数 φ。
-        noise_variance (float): 白噪声的方差 σ^2。
+        coefficients (List[float]): AR模型的参数列表
+        order (int): AR模型的阶数
     """
 
-    def __init__(self, order: int, constant: float, ar_params: List[float], noise_variance: float):
+    def __init__(self, coefficients: List[float]):
         """
-        初始化 AR 类的实例。
+        初始化自回归过程。
 
         Args:
-            order (int): 自回归过程的阶数 p。
-            constant (float): 常数项 c。
-            ar_params (List[float]): 自回归参数 φ。
-            noise_variance (float): 白噪声的方差 σ^2。
+            coefficients (List[float]): AR模型的参数列表
         """
-        self.order = order
-        self.constant = constant
-        self.ar_params = np.array(ar_params)
-        self.noise_variance = noise_variance
-        self.noise_mean = 0  # 白噪声均值为0
-
-    def __repr__(self) -> str:
-        return (f"AutoregressiveProcess(order={self.order}, constant={self.constant}, "
-                f"ar_params={self.ar_params.tolist()}, noise_variance={self.noise_variance})")
-
-    def generate_series(self, n: int) -> np.ndarray:
+        self.coefficients = np.array(coefficients)
+        self.order = len(coefficients)
+    
+    def generate_samples(self, n_samples: int, noise_variance: float = 1.0) -> np.ndarray:
         """
-        生成 AR(p) 过程的时间序列。
+        生成自回归过程的样本序列。
 
         Args:
-            n (int): 生成的时间序列长度。
+            n_samples (int): 生成样本的数量
+            noise_variance (float): 噪声方差，默认值为1.0
 
         Returns:
-            np.ndarray: 生成的时间序列。
+            np.ndarray: 生成的AR过程样本序列
         """
-        noise = np.random.normal(self.noise_mean, np.sqrt(self.noise_variance), n + self.order)
-        series = np.zeros(n + self.order)
+        # 初始化样本序列
+        samples = np.zeros(n_samples)
+        # 生成白噪声序列
+        white_noise = np.random.normal(scale=np.sqrt(noise_variance), size=n_samples)
         
-        for t in range(self.order, n + self.order):
-            series[t] = self.constant + noise[t]
-            for j in range(1, self.order + 1):
-                series[t] += self.ar_params[j-1] * series[t - j]
+        # 生成AR过程样本
+        for t in range(self.order, n_samples):
+            samples[t] = np.dot(self.coefficients, samples[t-self.order:t][::-1]) + white_noise[t]
         
-        return series[self.order:]
+        return samples
 
-    def calculate_expectation(self) -> float:
+    def estimate_parameters(self, samples: np.ndarray) -> np.ndarray:
         """
-        计算 AR(p) 过程的期望值。
-
-        Returns:
-            float: 期望值。
-        """
-        return self.constant / (1 - np.sum(self.ar_params))
-
-    def calculate_variance(self) -> float:
-        """
-        计算 AR(p) 过程的方差。
-
-        Returns:
-            float: 方差。
-        """
-        denominator = 1 - np.sum(self.ar_params ** 2)
-        if denominator <= 0:
-            raise ValueError("方差计算中出现非正值，请检查AR参数的平稳性。")
-        variance = self.noise_variance / denominator
-        return variance
-
-    def calculate_autocorrelation(self, lag: int) -> float:
-        """
-        计算 AR(p) 过程的自相关函数。
+        使用Yule-Walker方程估计AR模型参数。
 
         Args:
-            lag (int): 滞后阶数。
+            samples (np.ndarray): 样本序列
 
         Returns:
-            float: 滞后 lag 的自相关值。
+            np.ndarray: 估计的AR模型参数
         """
-        if lag == 0:
-            return 1.0
-        if lag > self.order:
-            return 0.0
+        from scipy.linalg import toeplitz
+
+        # 计算自相关函数
+        r = np.correlate(samples, samples, mode='full')[len(samples)-1:]
+        r = r[:self.order+1]
         
-        autocorrelation = self.ar_params[lag-1]
-        return autocorrelation
+        # 构建Toeplitz矩阵
+        R = toeplitz(r[:-1])
+        r = r[1:]
+        
+        # 计算AR模型参数
+        phi_hat = np.linalg.solve(R, r)
+        
+        return phi_hat
 
-# 实例化AR(1)模型
-ar1 = AutoregressiveProcess(order=1, constant=0, ar_params=[0.5], noise_variance=1.0)
-print(ar1)
+def main():
+    """
+    主函数，演示自回归过程的使用。
+    """
+    # 定义AR(2)模型的参数
+    coefficients = [0.75, -0.25]
+    ar_process = AutoregressiveProcess(coefficients)
+    
+    # 生成AR过程样本
+    n_samples = 100
+    noise_variance = 1.0
+    samples = ar_process.generate_samples(n_samples, noise_variance)
+    
+    # 打印生成的样本序列的前10个值
+    print("Generated AR process samples (first 10 samples):")
+    print(samples[:10])
+    
+    # 使用Yule-Walker方程估计AR模型参数
+    estimated_coefficients = ar_process.estimate_parameters(samples)
+    
+    # 打印估计的参数
+    print("Estimated AR process coefficients:")
+    print(estimated_coefficients)
 
-# 生成时间序列
-series = ar1.generate_series(100)
-print("Generated Series:", series[:10])  # 仅显示前10个数据点
-
-# 计算期望值
-expectation = ar1.calculate_expectation()
-print("Expectation:", expectation)
-
-# 计算方差
-variance = ar1.calculate_variance()
-print("Variance:", variance)
-
-# 计算自相关函数
-autocorrelation_0 = ar1.calculate_autocorrelation(0)
-autocorrelation_1 = ar1.calculate_autocorrelation(1)
-autocorrelation_2 = ar1.calculate_autocorrelation(2)
-print("Autocorrelation (lag 0):", autocorrelation_0)
-print("Autocorrelation (lag 1):", autocorrelation_1)
-print("Autocorrelation (lag 2):", autocorrelation_2)
-
-# 可视化时间序列
-import matplotlib.pyplot as plt
-
-plt.figure(figsize=(10, 6))
-plt.plot(series, label='AR(1) Series')
-plt.title('Generated AR(1) Time Series')
-plt.xlabel('Time')
-plt.ylabel('Value')
-plt.legend()
-plt.show()
-
-# 实例化AR(1)模型
-ar1 = AutoregressiveProcess(order=1, constant=0, ar_params=[0.5], noise_variance=1.0)
-print(ar1)
-
-# 生成时间序列
-series = ar1.generate_series(100)
-print("Generated Series:", series[:10])  # 仅显示前10个数据点
-
-# 计算期望值
-expectation = ar1.calculate_expectation()
-print("Expectation:", expectation)
-
-# 计算方差
-variance = ar1.calculate_variance()
-print("Variance:", variance)
-
-# 计算自相关函数
-autocorrelation_0 = ar1.calculate_autocorrelation(0)
-print("Autocorrelation (lag 0):", autocorrelation_0)
+if __name__ == "__main__":
+    main()

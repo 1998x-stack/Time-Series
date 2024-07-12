@@ -1,17 +1,17 @@
 structure = {
-    "第1章 差分方程": [
+    "第01章 差分方程": [
         "1.1 一阶差分方程",
         "1.2 p阶差分方程",
         "附录1.A 第1章性质证明",
     ],
-    "第2章 滞后算子": [
+    "第02章 滞后算子": [
         "2.1 简介",
         "2.2 一阶差分方程",
         "2.3 二阶差分方程",
         "2.4 p阶差分方程",
         "2.5 初始条件及无界序列",
     ],
-    "第3章 平稳自回归移动平均过程": [
+    "第03章 平稳自回归移动平均过程": [
         "3.1 期望、平稳性和遍历性",
         "3.2 白噪声",
         "3.3 移动平均过程",
@@ -22,7 +22,7 @@ structure = {
         "附录3.A 无限阶移动平均过程的收敛结论",
         "第3章习题",
     ],
-    "第4章 预测": [
+    "第04章 预测": [
         "4.1 预测的原理",
         "4.2 基于无限个观测的预测",
         "4.3 基于有限个观测的预测",
@@ -35,7 +35,7 @@ structure = {
         "附录 4.B 一阶移动平均过程协方差矩阵的三角分解",
         "第4章习题",
     ],
-    "第5章 极大似然估计": [
+    "第05章 极大似然估计": [
         "5.1 简介",
         "5.2 高斯一阶自回归过程的似然函数",
         "5.3 高斯 p阶自回归过程的似然函数",
@@ -48,7 +48,7 @@ structure = {
         "附录5.A 第5章性质证明",
         "第5章习题",
     ],
-    "第6章 谱分析": [
+    "第06章 谱分析": [
         "6.1 总体谱",
         "6.2 样本谱",
         "6.3 总体谱估计",
@@ -56,20 +56,20 @@ structure = {
         "附录6.A 第6章性质证明",
         "第6章习题",
     ],
-    "第7章 渐近分布理论": [
+    "第07章 渐近分布理论": [
         "7.1 渐近分布理论回顾",
         "7.2 序列相关观测的极限定理",
         "附录7.A 第7章性质证明",
         "第7章习题",
     ],
-    "第8章 线性回归模型": [
+    "第08章 线性回归模型": [
         "8.1 确定性回归元与独立同分布高斯扰动下的普通最小二乘法回顾",
         "8.2 一般条件下的普通最小二乘法",
         "8.3 广义最小二乘法",
         "附录8.A 第8章性质证明",
         "第8章习题",
     ],
-    "第9章 线性联立方程系统": [
+    "第09章 线性联立方程系统": [
         "9.1 联立方程偏差",
         "9.2 工具变量与两阶段最小二乘法",
         "9.3 识别",
@@ -252,9 +252,35 @@ def create_directories_and_files(
                 parent_clean = parent_path.replace(" ", "_").replace("-", "_")
                 key_clean = key.replace(" ", "_").replace("-", "_")
                 readme_file.write(f"- [{item}](./{parent_clean}/{key_clean}/{item_clean}.py)\n")
+                
+                
+                file_name = item.replace(" ", "_").replace("-", "_") + ".md"
+                file_path = os.path.join(current_path, file_name)
+                with open(file_path, 'w', encoding='utf-8') as file:
+                    file.write(f"# {item}\n\n")
+                    file.write(f'"""\nLecture: {parent_path}/{key}\nContent: {item}\n"""\n\n')
+
+                # 在README中添加文件链接
+                item_clean = item.replace(" ", "_").replace("-", "_")
+                parent_clean = parent_path.replace(" ", "_").replace("-", "_")
+                key_clean = key.replace(" ", "_").replace("-", "_")
+                readme_file.write(f"- [{item}](./{parent_clean}/{key_clean}/{item_clean}.md)\n")
         else:
             # 创建文件并写入初始内容
             file_name = key.replace(" ", "_").replace("-", "_") + ".py"
+            file_path = os.path.join(current_path, file_name)
+            with open(file_path, 'w', encoding='utf-8') as file:
+                file.write(f"# {key}\n\n")
+                file.write(f'"""\nLecture: {parent_path}/{key}\nContent: {key}\n"""\n\n')
+
+            # 在README中添加文件链接
+            parent_clean = parent_path.replace(" ", "_").replace("-", "_")
+            key_clean = key.replace(" ", "_").replace("-", "_")
+            readme_file.write(f"- [{key}](./{parent_clean}/{key_clean}/{file_name})\n")
+            
+            
+            
+            file_name = key.replace(" ", "_").replace("-", "_") + ".md"
             file_path = os.path.join(current_path, file_name)
             with open(file_path, 'w', encoding='utf-8') as file:
                 file.write(f"# {key}\n\n")

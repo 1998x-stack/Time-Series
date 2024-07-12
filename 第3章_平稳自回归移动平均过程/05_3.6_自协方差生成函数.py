@@ -5,35 +5,67 @@ Lecture: /第3章 平稳自回归移动平均过程
 Content: 05_3.6 自协方差生成函数
 """
 
-
 import numpy as np
-import matplotlib.pyplot as plt
+from typing import List
 
-# 定义 MA(1) 过程的参数
-theta = 0.5
-sigma2 = 1.0
+class AutocovarianceGeneratingFunction:
+    """
+    自协方差生成函数 (ACGF) 类，用于计算和分析时间序列的自协方差生成函数。
 
-# 定义自协方差生成函数
-def autocovariance_generating_function(z, theta, sigma2):
-    return sigma2 * (1 + theta * z) * (1 + theta * z**-1)
+    Attributes:
+        autocovariances (List[float]): 时间序列的自协方差函数值列表
+    """
 
-# 在单位圆上取点
-theta_values = np.linspace(0, 2 * np.pi, 500)
-z_values = np.exp(1j * theta_values)  # 复数单位圆上的点
+    def __init__(self, autocovariances: List[float]):
+        """
+        初始化自协方差生成函数。
 
-# 计算自协方差生成函数的值
-gamma_values = [autocovariance_generating_function(z, theta, sigma2) for z in z_values]
+        Args:
+            autocovariances (List[float]): 时间序列的自协方差函数值列表
+        """
+        self.autocovariances = np.array(autocovariances)
+    
+    def compute_acgf(self, z: complex) -> complex:
+        """
+        计算自协方差生成函数的值。
 
-# 可视化
-plt.figure(figsize=(10, 6))
-plt.plot(theta_values, np.abs(gamma_values))
-plt.title('Autocovariance Generating Function on the Unit Circle for MA(1) Process')
-plt.xlabel('Angle (radians)')
-plt.ylabel('Magnitude of Gamma(z)')
-plt.grid(True)
-plt.show()
+        Args:
+            z (complex): 复数变量
 
-"""
-有限模：从图中可以看出，自协方差生成函数在单位圆上的模是有限的，这表明该时间序列的自协方差在所有滞后下都是有限的，符合平稳性的要求。
-平稳性判定：通过自协方差生成函数在单位圆上的分析，可以有效地判断时间序列是否平稳。对于MA(1)过程，如果自协方差生成函数在单位圆上的模是有限的，则该过程是平稳的。
-"""
+        Returns:
+            complex: 自协方差生成函数在 z 处的值
+        """
+        acgf_value = np.sum(self.autocovariances * np.array([z**k for k in range(-len(self.autocovariances) + 1, len(self.autocovariances))]))
+        return acgf_value
+
+    def compute_acgf_series(self, z_values: List[complex]) -> List[complex]:
+        """
+        计算一系列 z 值对应的自协方差生成函数的值。
+
+        Args:
+            z_values (List[complex]): 复数变量列表
+
+        Returns:
+            List[complex]: 自协方差生成函数在 z_values 处的值列表
+        """
+        return [self.compute_acgf(z) for z in z_values]
+
+def main():
+    """
+    主函数，演示自协方差生成函数的使用。
+    """
+    # 示例自协方差函数值列表
+    autocovariances = [1, 0.75, 0.5, 0.25, 0]
+    
+    # 创建自协方差生成函数对象
+    acgf = AutocovarianceGeneratingFunction(autocovariances)
+    
+    # 计算并打印自协方差生成函数在一些复数点的值
+    z_values = [0.5 + 0.5j, 1 + 0j, -0.5 + 0.5j]
+    acgf_values = acgf.compute_acgf_series(z_values)
+    
+    for z, value in zip(z_values, acgf_values):
+        print(f"ACGF at z = {z}: {value}")
+
+if __name__ == "__main__":
+    main()
