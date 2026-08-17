@@ -6,97 +6,79 @@ Content: 03_3.4 自回归过程
 """
 
 import numpy as np
-from typing import List
 
-class AutoregressiveProcess:
+
+def simulate_ar(phi: np.ndarray, sigma: float, n: int, rng) -> np.ndarray:
+    """AR(p): x_t = sum phi_i x_{t-i} + eps_t (预热后返回)。"""
+    p = len(phi)
+    burn = 300
+    total = n + burn
+    eps = rng.normal(0.0, sigma, total)
+    x = np.zeros(total)
+    for t in range(total):
+        val = eps[t]
+        for i in range(p):
+            if t - 1 - i >= 0:
+                val += phi[i] * x[t - 1 - i]
+        x[t] = val
+    return x[burn:]
+
+
+def sample_acf(x: np.ndarray, maxlag: int) -> np.ndarray:
+    """样本自协方差 (T 归一化)。"""
+    n = len(x)
+    xc = x - x.mean()
+    return np.array([
+        np.dot(xc[h:], xc[: n - h]) / n for h in range(maxlag + 1)
+    ])
+
+
+def yule_walker_acf(phi: np.ndarray, sigma: float, maxlag: int) -> np.ndarray:
+    """AR(p) 理论自协方差 gamma(0..maxlag)。
+
+    对 h=0..p 解线性方程组, 再用 gamma(h)=sum phi_i gamma(h-i) 递推。
     """
-    自回归过程类，用于生成和分析AR(p)模型。
+    p = len(phi)
+    A = np.zeros((p + 1, p + 1))
+    b = np.zeros(p + 1)
+    A[0, 0] = 1.0
+    for i in range(p):
+        A[0, i + 1] = -phi[i]
+    b[0] = sigma ** 2
+    for h in range(1, p + 1):
+        A[h, h] = 1.0
+        for i in range(p):
+            A[h, abs(h - (i + 1))] -= phi[i]
+    g = np.zeros(maxlag + 1)
+    g[: p + 1] = np.linalg.solve(A, b)
+    for h in range(p + 1, maxlag + 1):
+        g[h] = sum(phi[i] * g[h - i - 1] for i in range(p))
+    return g
 
-    Attributes:
-        coefficients (List[float]): AR模型的参数列表
-        order (int): AR模型的阶数
-    """
-
-    def __init__(self, coefficients: List[float]):
-        """
-        初始化自回归过程。
-
-        Args:
-            coefficients (List[float]): AR模型的参数列表
-        """
-        self.coefficients = np.array(coefficients)
-        self.order = len(coefficients)
-    
-    def generate_samples(self, n_samples: int, noise_variance: float = 1.0) -> np.ndarray:
-        """
-        生成自回归过程的样本序列。
-
-        Args:
-            n_samples (int): 生成样本的数量
-            noise_variance (float): 噪声方差，默认值为1.0
-
-        Returns:
-            np.ndarray: 生成的AR过程样本序列
-        """
-        # 初始化样本序列
-        samples = np.zeros(n_samples)
-        # 生成白噪声序列
-        white_noise = np.random.normal(scale=np.sqrt(noise_variance), size=n_samples)
-        
-        # 生成AR过程样本
-        for t in range(self.order, n_samples):
-            samples[t] = np.dot(self.coefficients, samples[t-self.order:t][::-1]) + white_noise[t]
-        
-        return samples
-
-    def estimate_parameters(self, samples: np.ndarray) -> np.ndarray:
-        """
-        使用Yule-Walker方程估计AR模型参数。
-
-        Args:
-            samples (np.ndarray): 样本序列
-
-        Returns:
-            np.ndarray: 估计的AR模型参数
-        """
-        from scipy.linalg import toeplitz
-
-        # 计算自相关函数
-        r = np.correlate(samples, samples, mode='full')[len(samples)-1:]
-        r = r[:self.order+1]
-        
-        # 构建Toeplitz矩阵
-        R = toeplitz(r[:-1])
-        r = r[1:]
-        
-        # 计算AR模型参数
-        phi_hat = np.linalg.solve(R, r)
-        
-        return phi_hat
-
-def main():
-    """
-    主函数，演示自回归过程的使用。
-    """
-    # 定义AR(2)模型的参数
-    coefficients = [0.75, -0.25]
-    ar_process = AutoregressiveProcess(coefficients)
-    
-    # 生成AR过程样本
-    n_samples = 100
-    noise_variance = 1.0
-    samples = ar_process.generate_samples(n_samples, noise_variance)
-    
-    # 打印生成的样本序列的前10个值
-    print("Generated AR process samples (first 10 samples):")
-    print(samples[:10])
-    
-    # 使用Yule-Walker方程估计AR模型参数
-    estimated_coefficients = ar_process.estimate_parameters(samples)
-    
-    # 打印估计的参数
-    print("Estimated AR process coefficients:")
-    print(estimated_coefficients)
 
 if __name__ == "__main__":
-    main()
+    rng = np.random.default_rng(2026)
+    n = 8000
+    sigma = 1.0
+
+    # AR(1)
+    phi1 = np.array([0.7])
+    x1 = simulate_ar(phi1, sigma, n, rng)
+    g1 = sample_acf(x1, 6)
+    t1 = yule_walker_acf(phi1, sigma, 6)
+    print("AR(1) 样本 gamma_hat:", np.round(g1, 4))
+    print("AR(1) 理论 gamma   :", np.round(t1, 4), "(几何衰减, 不截零)")
+
+    # AR(2)
+    phi2 = np.array([0.5, -0.2])
+    x2 = simulate_ar(phi2, sigma, n, rng)
+    g2 = sample_acf(x2, 6)
+    t2 = yule_walker_acf(phi2, sigma, 6)
+    print("\nAR(2) 样本 gamma_hat:", np.round(g2[:5], 4))
+    print("AR(2) 理论 gamma   :", np.round(t2[:5], 4))
+
+    # 非平稳根: 方差随时间增长
+    x3 = simulate_ar(np.array([1.03]), sigma, 2000, rng)
+    var_first = x3[:400].var()
+    var_last = x3[-400:].var()
+    print(f"\nAR(1), phi=1.03: 前400方差={var_first:.2f} 后400方差={var_last:.2f} (方差增长=>非平稳)")
