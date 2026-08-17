@@ -1,66 +1,56 @@
+# Durbin-Levinson算法
+
+"""
+Lecture: /第1章 差分方程
+Content: Durbin-Levinson算法
+"""
+
 import numpy as np
-from typing import Tuple
 
-class DurbinLevinson:
-    def __init__(self, autocovariances: np.ndarray):
-        """
-        初始化Durbin-Levinson算法类。
 
-        参数:
-        autocovariances (np.ndarray): 自协方差函数值的数组，长度为 p+1，其中 p 为最大滞后阶数。
-        """
-        self.autocovariances = autocovariances
-        self.p = len(autocovariances) - 1
-        self.phi = np.zeros((self.p + 1, self.p + 1))
-        self.sigma = np.zeros(self.p + 1)
-        self.calculate_parameters()
+def durbin_levinson(gamma: np.ndarray) -> tuple:
+    """Durbin-Levinson 递推: 由自协方差 gamma[0..p] 求 AR(p) 系数与预报误差方差。
 
-    def calculate_parameters(self):
-        """
-        使用Durbin-Levinson算法计算AR(p)模型的参数。
-        """
-        # 初始条件
-        self.phi[1, 1] = self.autocovariances[1] / self.autocovariances[0]
-        self.sigma[1] = self.autocovariances[0] * (1 - self.phi[1, 1] ** 2)
-        
-        # 递归计算
-        for k in range(2, self.p + 1):
-            phi_sum = sum(self.phi[k - 1, j] * self.autocovariances[k - j] for j in range(1, k))
-            self.phi[k, k] = (self.autocovariances[k] - phi_sum) / self.sigma[k - 1]
-            
-            for j in range(1, k):
-                self.phi[k, j] = self.phi[k - 1, j] - self.phi[k, k] * self.phi[k - 1, k - j]
-            
-            self.sigma[k] = self.sigma[k - 1] * (1 - self.phi[k, k] ** 2)
+    Args:
+        gamma: 长度 p+1, gamma[0] 为方差, gamma[k] 为滞后 k 的自协方差。
 
-    def get_coefficients(self) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        获取AR(p)模型的参数和噪声方差。
-
-        返回:
-        Tuple[np.ndarray, np.ndarray]: 返回两个数组，第一个是AR(p)模型的参数，第二个是噪声方差。
-        """
-        coefficients = self.phi[self.p, 1:self.p + 1]
-        noise_variance = self.sigma[self.p]
-        return coefficients, noise_variance
-
-def example_usage():
+    Returns:
+        (phi, sigma): phi 为长 p 的 AR 系数; sigma 为噪声方差(标量)。
     """
-    示例用法：使用Durbin-Levinson算法计算AR模型的参数和噪声方差。
-    """
-    # 示例自协方差值
-    autocovariances = np.array([1.0, 0.5, 0.3, 0.2, 0.1])
+    p = len(gamma) - 1
+    phi = np.zeros((p + 1, p + 1))   # phi[k, i], i=1..k
+    sigma = np.zeros(p + 1)
+    sigma[0] = gamma[0]
+    for k in range(1, p + 1):
+        numer = gamma[k]
+        for j in range(1, k):
+            numer -= phi[k - 1, j] * gamma[k - j]
+        phi[k, k] = numer / sigma[k - 1]
+        for j in range(1, k):
+            phi[k, j] = phi[k - 1, j] - phi[k, k] * phi[k - 1, k - j]
+        sigma[k] = sigma[k - 1] * (1 - phi[k, k] ** 2)
+    return phi[p, 1 : p + 1], sigma[p]
 
-    # 初始化Durbin-Levinson算法类
-    dl = DurbinLevinson(autocovariances)
 
-    # 获取AR模型的参数和噪声方差
-    coefficients, noise_variance = dl.get_coefficients()
+def main():
+    rng = np.random.default_rng(7)
+    true_phi = np.array([0.5, -0.2])
+    T = 40000
+    y = np.zeros(T)
+    e = rng.standard_normal(T)
+    for t in range(2, T):
+        y[t] = true_phi[0] * y[t - 1] + true_phi[1] * y[t - 2] + e[t]
+    y = y - y.mean()
+    gamma = np.array([
+        np.dot(y, y) / T,
+        np.dot(y[1:], y[:-1]) / T,
+        np.dot(y[2:], y[:-2]) / T,
+    ])
+    est, sig = durbin_levinson(gamma)
+    print(f"估计系数: {np.round(est, 4)}   真值: {true_phi}")
+    print(f"噪声方差估计: {sig:.4f}   理论: 1.0")
+    print("最大系数误差:", np.abs(est - true_phi).max())
 
-    # 打印结果
-    print("AR模型的参数:", coefficients)
-    print("噪声方差:", noise_variance)
 
-# 执行示例用法
 if __name__ == "__main__":
-    example_usage()
+    main()
