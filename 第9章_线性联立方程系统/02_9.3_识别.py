@@ -11,19 +11,17 @@ warnings.filterwarnings("ignore", message=".*matmul")
 
 
 if __name__ == "__main__":
-    # 系统: 内生总数 G=2;总外生 K=2 (x1,x2)
-    G, K = 2, 2
-    # 方程1: 含内生 g1=1 (y2), 含外生 k1=1 (x1), 排除 x2
-    g1, k1 = 1, 1
-    excluded = K - k1             # 排除的外生=1
-    need = g1 - 1                 # 需要 ≥ 1
-    print(f"方程1: 被排除外生 = K-k1 = {K}-{k1} = {excluded}, 需要 g1-1 = {need}")
-    if excluded > need:
-        print("状态: 过度识别 (over-identified)")
+    # 系统: 内生总数 G=2; 方程1 含全部内生(y1,y2), 被排除外生=1(x2)
+    G = 2          # 总内生变量数
+    excluded = 1   # 方程1 被排除的变量数 (= x2)
+    need = G - 1   # 阶条件需 excluded >= G-1
+    print(f"方程1: 被排除变量 = {excluded}, 阶条件需 G-1 = {need}")
+    if excluded < need:
+        print("状态: 不足识别 (under-identified)")
     elif excluded == need:
         print("状态: 恰识别 (just-identified)")
     else:
-        print("状态: 不足识别 (under-identified)")
+        print("状态: 过度识别 (over-identified)")
 
     # 模拟恰识别, 2SLS 恢复 alpha
     rng = np.random.default_rng(2026)
