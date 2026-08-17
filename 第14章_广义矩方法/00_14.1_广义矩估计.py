@@ -1,6 +1,8 @@
 # 00_14.1 广义矩估计
 
 import numpy as np
+import warnings
+warnings.filterwarnings("ignore", message=".*matmul")
 
 
 def gmm(theta_guess, y, x, z, W):
