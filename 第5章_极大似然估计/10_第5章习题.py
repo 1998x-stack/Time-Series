@@ -21,6 +21,6 @@ if __name__ == "__main__":
     # 习题3: 用模拟验证得分方差=信息
     rng = np.random.default_rng(2026)
     nn, B = 50, 20000
-    s = np.array([n * (rng.normal(size=nn).mean()) for _ in range(B)])  # 真值 μ0=0
+    s = np.array([nn * (rng.normal(size=nn).mean()) for _ in range(B)])  # 真值 μ0=0
     info = N / 1.0 if False else nn / 1.0
     print(f"习题3: Var(得分)={s.var():.3f} vs 信息 n/σ²={info:.2f} (≈相等)")
