@@ -34,13 +34,13 @@ if __name__ == "__main__":
     I_band = I[:half]
 
     bands = [(0.0, 0.4), (0.4, 0.8), (0.8, 1.2), (1.2, 1.6), (1.6, np.pi)]
-    print("频带平均周期图 vs 同频带理论均值:")
+    print("频带平均周期图 vs 2π·同频带理论均值:")
     for lo, hi in bands:
         mask = (lam_band >= lo) & (lam_band < hi)
         if mask.sum() == 0:
             continue
         avg = I_band[mask].mean()
-        th = ar1_spectrum(phi, sigma, lam_band[mask]).mean()
+        th = 2 * np.pi * ar1_spectrum(phi, sigma, lam_band[mask]).mean()  # 周期图估计 2πf
         print(f"  [{lo:.2f},{hi:.2f}]  周期图均值={avg:.4f}  理论均值={th:.4f}")
 
     # 单点波动(不一致性): 取同一频带内两个点
