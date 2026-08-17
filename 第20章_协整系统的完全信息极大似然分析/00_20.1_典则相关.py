@@ -3,10 +3,14 @@
 import numpy as np
 import warnings
 warnings.filterwarnings("ignore", message=".*matmul")
+from scipy.linalg import eigh
 
 
 def johansen_eigenvalues(Y, k=1):
-    """Johansen 广义特征值: S00^{-1} S01 S11^{-1} S10。Y (T,n)。"""
+    """Johansen 广义特征值: |λ S11 - S10 S00^-1 S01|=0 (对称 eigh)。
+
+    Y (T,n)。返回 λ∈[0,1](平方典则相关)。
+    """
     T, n = Y.shape
     dy = np.diff(Y, axis=0)
     yl = Y[:-1]
@@ -14,8 +18,9 @@ def johansen_eigenvalues(Y, k=1):
     R1 = yl - yl.mean(0)
     S00 = R0.T @ R0 / T; S11 = R1.T @ R1 / T
     S01 = R0.T @ R1 / T; S10 = S01.T
-    M = np.linalg.inv(S00) @ S01 @ np.linalg.inv(S11) @ S10
-    return np.linalg.eigvalsh(M)
+    G = S10 @ np.linalg.inv(S00) @ S01
+    ev = eigh(G, S11, eigvals_only=True)
+    return np.clip(ev, 0, 1)
 
 
 if __name__ == "__main__":
