@@ -1,6 +1,8 @@
 # 00_18.1 非平稳向量过程的渐近结果
 
 import numpy as np
+import warnings
+warnings.filterwarnings("ignore", message=".*matmul")
 
 
 if __name__ == "__main__":
