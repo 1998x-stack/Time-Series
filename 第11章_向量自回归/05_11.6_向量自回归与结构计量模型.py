@@ -1,6 +1,8 @@
 # 05_11.6 向量自回归与结构计量模型
 
 import numpy as np
+import warnings
+warnings.filterwarnings("ignore", message=".*matmul")
 
 
 def irf_var1(Phi, horizon):
