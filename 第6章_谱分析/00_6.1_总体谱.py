@@ -30,7 +30,7 @@ if __name__ == "__main__":
     # 面积 ≈ 方差 (梯形或求和)
     grid = np.linspace(-np.pi, np.pi, 4001)
     fg = ar1_spectrum(phi, sigma, grid)
-    area = np.trapz(fg, grid)
+    area = np.trapezoid(fg, grid)
     var = ar1_acf(phi, sigma, 0)[0]
     print("∫f dλ =", round(area, 4), "  Var(x) = γ(0) =", round(var, 4),
           " (应相等)")
