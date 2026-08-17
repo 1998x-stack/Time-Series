@@ -1,6 +1,8 @@
 # 04_15.5 趋势时间序列的其他方法
 
 import numpy as np
+import warnings
+warnings.filterwarnings("ignore", message=".*matmul")
 
 
 def hp_filter(y, lam=1600.0):
