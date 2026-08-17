@@ -1,6 +1,8 @@
 # 02_15.3 趋势平稳和单位根过程的比较
 
 import numpy as np
+import warnings
+warnings.filterwarnings("ignore", message=".*matmul")
 
 
 def acf(x, hmax=5):
