@@ -48,7 +48,7 @@ def agf_sample(x: np.ndarray, lam: np.ndarray, H: int) -> np.ndarray:
         total = g[0]
         for h in range(1, H + 1):
             total += g[h] * (zk ** h + zk ** (-h))
-        out[k] = total
+        out[k] = np.real(total)
     return out
 
 
