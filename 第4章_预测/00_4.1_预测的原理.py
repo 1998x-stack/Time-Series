@@ -8,7 +8,7 @@ Content: 00_4.1 预测的原理
 import numpy as np
 import warnings
 # numpy 2.0.2 在某些 matmul 上报告假 RuntimeWarning; 结果正确, 只是紧噪
-warnings.filterwarnings("ignore", message="encountered in matmul")
+warnings.filterwarnings("ignore", message=".*matmul")
 
 
 def linear_projection(Y: np.ndarray, X: np.ndarray):
