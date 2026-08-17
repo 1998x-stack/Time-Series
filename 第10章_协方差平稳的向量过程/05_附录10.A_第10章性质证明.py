@@ -21,17 +21,16 @@ if __name__ == "__main__":
     Omega = np.array([[1.0, 0.3], [0.3, 1.0]])
     n = 2
 
-    # (i) Gamma(0) = (I-Phi)^{-1} Omega (I-Phi')^{-1} 半正定
-    G0 = np.linalg.inv(np.eye(n) - Phi) @ Omega @ np.linalg.inv(np.eye(n) - Phi.T)
-    print("Gamma(0) 特征值:", np.round(np.linalg.eigvalsh(G0), 4), " (应≥0)")
-
-    # (ii) 积分谱 = Gamma(0)
+    # Γ(0) = ∫F (时域方差 = 谱面积, 矩阵逐元)
     grid = np.linspace(-np.pi, np.pi, 4001)
-    F00 = np.array([spectral_var1(Phi, Omega, x)[0, 0] for x in grid])
-    F11 = np.array([spectral_var1(Phi, Omega, x)[1, 1] for x in grid])
-    F01 = np.array([spectral_var1(Phi, Omega, x)[0, 1] for x in grid])
-    I00 = np.trapezoid(F00, grid); I11 = np.trapezoid(F11, grid)
-    I01 = np.trapezoid(np.real(F01), grid)
-    print("∫F = Γ(0)?  (0,0):", round(I00, 3), "vs", round(G0[0, 0], 3),
-          " (1,1):", round(I11, 3), "vs", round(G0[1, 1], 3),
-          " (0,1):", round(I01, 3), "vs", round(G0[0, 1], 3))
+    L00 = np.array([spectral_var1(Phi, Omega, x)[0, 0] for x in grid])
+    L11 = np.array([spectral_var1(Phi, Omega, x)[1, 1] for x in grid])
+    L01 = np.array([spectral_var1(Phi, Omega, x)[0, 1] for x in grid])
+    G0 = np.array([[np.real(np.trapezoid(L00, grid)), np.real(np.trapezoid(L01, grid))],
+                   [np.real(np.trapezoid(L01, grid)), np.real(np.trapezoid(L11, grid))]],
+                  dtype=float)
+    print("Γ(0)=∫F dλ 矩阵:\n", np.round(G0, 3))
+    print("Γ(0) 特征值(应>=0):", np.round(np.linalg.eigvalsh(G0), 3))
+    # 非对角由 F 的 (0,1) 实部积分给出, 亦对称
+    print("Γ(0) 对称: 差 =", np.max(np.abs(G0 - G0.T)))
+    print("注: 长程方差 Σλ(h)=2πF(0) 是另一概念(见 10.5), 非 Γ(0)。")
