@@ -24,6 +24,5 @@ if __name__ == "__main__":
     u = rng.normal(0, 0.5, T)   # 平稳残差
     y1 = beta * y2 + u                          # I(1) 但残差 I(0)
     z = y1 - beta * y2                          # 真实残差
-    print("y1/y2 各自(差分) I(1); 协整残差 z:")
-    print("  ADF(残差) =", round(adf(z), 2), " (应<<-2.86 平稳)")
-    print("  无协整白噪声对的 ADF:", round(adf(rng.normal(0,1,T)), 2))
+    print("ADF(水平 y1) =", round(adf(y1), 2), "  (不显著, I(1))")
+    print("ADF(协整残差 z) =", round(adf(z), 2), " (应<<-2.86, 平稳)")
