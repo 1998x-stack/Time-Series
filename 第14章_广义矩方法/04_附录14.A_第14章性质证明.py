@@ -1,6 +1,8 @@
 # 04_附录14.A 第14章性质证明
 
 import numpy as np
+import warnings
+warnings.filterwarnings("ignore", message=".*matmul")
 
 
 def gmm_est(y, x, z, W):
