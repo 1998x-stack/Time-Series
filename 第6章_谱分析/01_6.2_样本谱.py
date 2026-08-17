@@ -27,23 +27,21 @@ if __name__ == "__main__":
     for t in range(1, T):
         x[t] = phi * x[t - 1] + rng.normal(0.0, sigma)
 
-    I = periodogram(x)
-    # 取非负频率: lambda_k = 2pi k / T
+    I = periodogram(x - x.mean())  # 去均值, 消除 λ=0 的 DC 尖峰
     freqs = 2 * np.pi * np.arange(T) / T
     half = T // 2
     lam_band = freqs[:half]
     I_band = I[:half]
 
-    # 频带平均 vs 理论谱
     bands = [(0.0, 0.4), (0.4, 0.8), (0.8, 1.2), (1.2, 1.6), (1.6, np.pi)]
-    print("频带平均周期图 vs 理论谱:")
+    print("频带平均周期图 vs 同频带理论均值:")
     for lo, hi in bands:
         mask = (lam_band >= lo) & (lam_band < hi)
         if mask.sum() == 0:
             continue
         avg = I_band[mask].mean()
-        flam = ar1_spectrum(phi, sigma, (lo + hi) / 2)
-        print(f"  [{lo:.2f},{hi:.2f}]  平均周期图={avg:.4f}  理论f={flam:.4f}")
+        th = ar1_spectrum(phi, sigma, lam_band[mask]).mean()
+        print(f"  [{lo:.2f},{hi:.2f}]  周期图均值={avg:.4f}  理论均值={th:.4f}")
 
     # 单点波动(不一致性): 取同一频带内两个点
     m = (lam_band > 0.5) & (lam_band < 0.6)
