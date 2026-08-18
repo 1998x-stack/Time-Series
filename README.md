@@ -1,5 +1,12 @@
 # 时间序列 — 基于《Time Series Analysis》(Hamilton) 的中文代码教程
 
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+> A Chinese step-by-step tutorial reproducing all 22 chapters / 144 sections of Hamilton's
+> *Time Series Analysis* from scratch — concept → formula → runnable demo → verified output.
+> —— 中文《时间序列分析》22 章 / 144 小节教程,每节配套 `概念+推导(.md)` 与 `可运行演示(.py)`。
+
 这是一个以**中文**讲解 Hamilton《Time Series Analysis》的 22 章、144 小节的教程仓库。
 每小节有同名一对文件,配套使用:
 
@@ -23,6 +30,26 @@ python3 "第1章_差分方程/00_1.1_一阶差分方程.py"
 ```
 
 每个脚本会打印「估计 vs 真值」对照, 部分会保存图片到本地 `plots/` 子目录(或直接显示)。
+
+## ✅ 质量栏 (Quality Bar)
+
+- 每节 `.py` 自包含、无跨文件依赖, 可直接独立运行。
+- 仅依赖 `numpy/scipy/matplotlib`; 无 statsmodels/pandas, 算法从零手写。
+- 固定随机种子, 结果可复现。
+- 目录由 `generate_index.py` 幂等重建 (INDEX markers)。
+
+## 🔬 已验证演示 (Verified Demo Evidence)
+
+> 冒烟运行样例 — 证明演示可复现执行 (not a full reproduction of every section).
+
+```text
+$ python3 "第1章_差分方程/00_1.1_一阶差分方程.py"   # EXIT 0
+[phi=0.6] 递推 vs 闭式 max-diff = 8.882e-16
+[phi=1.05] 递推 vs 闭式 max-diff = 1.819e-11
+$ python3 "第2章_滞后算子/00_2.1_简介.py"            # EXIT 0
+  J=16  误差 = 2.226e-05   理论量级 phi^(J+1)=7.63e-06
+```
+
 所有演示使用固定随机种子 `np.random.default_rng(2026)`, 因此结果可复现。
 
 ## 记号与约定
